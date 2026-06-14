@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Dashboard</title>
+    <link rel="icon" type="image/png" href="/image/cs-logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+    <header class="site-header">
+        <a href="/" class="brand">
+            <span class="brand-logo" aria-hidden="true"></span>
+            <span>CoinScope</span>
+        </a>
+
+        <span class="live-status">
+            <span></span>
+            Live market data
+        </span>
+    </header>
+
+    
+    <main>
+        <section class="intro">
+            <p class="eyebrow">Live cryptocurrency prices</p>
+            <h1 class="page-title">Crypto Market Dashboard</h1>
+            <p>View current prices, market capitalization, and 24-hour changes.</p>
+        </section>
+
+        <section class="dashboard">
+            <form action="/" method="GET" class="coin-picker">
+                
+                <label for="coin">Choose preferred token:</label>
+                <div class="select-row">
+                
+                    <input
+                        type="text"
+                        name="coin"
+                        id="coin"
+                        list="coin-list"
+                        value="<%= selectedCoin %>"
+                        required
+                    >
+
+                    <datalist id="coin-list">
+                        <% coins.forEach(coin => { %>
+                            <option value="<%= coin.id %>">
+                                <%= coin.name %> (<%= coin.symbol.toUpperCase() %>)
+                            </option>
+                        <% }); %>
+                    </datalist>
+
+
+                    <button type="submit">View Coin</button>
+                </div>
+            </form>
+
+            <% if (error) { %>
+                <div class="error-state">
+                    <strong>Token unavailable</strong>
+                    <p><%= error %></p>
+                </div>
+            <% } else { %>
+                <div class="asset-summary">
+
+                    <div class="asset-identity">
+                        <img src="<%= data.image %>" class="coin-image" alt="<%= data.name %> logo">
+
+                        <div>
+                            <h2><%= data.name %> <%= data.symbol.toUpperCase() %></h2>
+
+                            <% if(data.price_change_percentage_24h > 0){ %>
+                                <strong class="positive-text"><%= data.price_change_percentage_24h.toFixed(2); %>%</strong>
+                            <% }else if(data.price_change_percentage_24h === 0){ %>
+                                <strong>+<%= data.price_change_percentage_24h.toFixed(2); %>%</strong>
+                            <% }else{ %>
+                                <strong class="negative-text"><%= data.price_change_percentage_24h.toFixed(2); %>%</strong>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <article class="metric primary-metric">
+                        <p>Current Price:</p> 
+                        <strong>$<%= data.current_price.toLocaleString(); %></strong>
+                    </article>
+
+                    <article class="metric">
+                            <p>Market cap: </p>
+                            <strong>$<%= data.market_cap.toLocaleString(); %></strong>
+                    </article>
+
+                </div>
+
+                <div class="secondary-metrics">
+                    <article class="secondary-metric">
+                        <p>FDV:</p>
+                        <strong><%= data.fully_diluted_valuation !== null
+                            ? "$" + data.fully_diluted_valuation.toLocaleString()
+                            : "Unavailable" %>
+                        </strong>
+                    </article>
+
+                    <article class="secondary-metric">
+                        <p>Total Volume:</p>
+                        <strong><%= data.total_volume !== null
+                            ? "$" + data.total_volume.toLocaleString()
+                            : "Unavailable" %>
+                        </strong>
+                    </article>
+
+                    <article class="secondary-metric">
+                        <p>ATH:</p>
+                        <strong><%= data.ath !== null
+                            ? "$" + data.ath.toLocaleString()
+                            : "Unavailable" %>
+                        </strong>
+                    </article>
+
+                    <article class="secondary-metric">
+                        <p>ATL</p>
+                        <strong><%= data.atl !== null
+                            ? "$" + data.atl.toLocaleString()
+                            : "Unavailable" %>
+                        </strong>
+                    </article>
+
+                </div>
+
+                <p class="updated-at">
+                        Last updated:
+                        <%= new Date(data.last_updated).toLocaleString() %>
+                </p>  
+            <% } %>
+        </section>
+    </main>
+    
+    <footer>
+        Market data provided by CoinGecko. Prices may be delayed.
+    </footer>
+</body>
+</html>
