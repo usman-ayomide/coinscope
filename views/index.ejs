@@ -10,6 +10,41 @@
     <link rel="stylesheet" href="/styles/main.css">
 </head>
 <body>
+    <%    //check if the value is defined (string, number) 
+        //if not, return unavailable
+        const formatUsd = (value, includeDecimals = false) => { 
+            if (value === null || value === undefined) return "Unavailable";
+
+            const absoluteValue = Math.abs(value);
+            const maximumFractionDigits = includeDecimals
+                ? (absoluteValue > 0 && absoluteValue < 1 ? 8 : 2)
+                : 0;
+                //handle token price properly, 
+                // added this because memecoins have decimals up to 8 places
+            return new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+                minimumFractionDigits: 0,
+                maximumFractionDigits
+            }).format(value);
+        };
+
+
+        //add positive or negative signs to changes
+        const formatPercentage = (value) => {
+            if (value === null || value === undefined) return "Unavailable";
+            return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+        };
+
+        //check if js created a real date, if not return unavailable
+        const formatDate = (value) => {
+            if (!value) return "Unavailable";
+
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? "Unavailable" : date.toLocaleString();
+        };
+    %>
+
     <header class="site-header">
         <a href="/" class="brand">
             <span class="brand-logo" aria-hidden="true"></span>
@@ -46,9 +81,11 @@
                     >
 
                     <datalist id="coin-list">
+                        <%# loop through all the tokens and find the one with the specific 
+                        id being searched %>
                         <% coins.forEach(coin => { %>
                             <option value="<%= coin.id %>">
-                                <%= coin.name %> (<%= coin.symbol.toUpperCase() %>)
+                                <%= coin.name %> (<%= String(coin.symbol || "").toUpperCase() %>)
                             </option>
                         <% }); %>
                     </datalist>
@@ -67,18 +104,19 @@
                 <div class="asset-summary">
 
                     <div class="asset-identity">
-                        <img src="<%= data.image %>" class="coin-image" alt="<%= data.name %> logo">
+                        <!-- if image is not found, show my app logo -->
+                        <img src="<%= data.image || "/image/cs-logo.png" %>" class="coin-image" alt="<%= data.name || selectedCoin %> logo">
 
                         <div>
-                            <h2><%= data.name %> <%= data.symbol.toUpperCase() %></h2>
+                            <h2><%= data.name || selectedCoin %> <%= String(data.symbol || "").toUpperCase() %></h2>
 
-                            <% if(data.price_change_percentage_24h > 0){ %>
-                                <strong class="positive-text"><%= data.price_change_percentage_24h.toFixed(2); %>%</strong>
-                            <% }else if(data.price_change_percentage_24h === 0){ %>
-                                <strong>+<%= data.price_change_percentage_24h.toFixed(2); %>%</strong>
-                            <% }else{ %>
-                                <strong class="negative-text"><%= data.price_change_percentage_24h.toFixed(2); %>%</strong>
-                            <% } %>
+                            <strong class="<%= data.price_change_percentage_24h > 0
+                                ? "positive-text"
+                                : data.price_change_percentage_24h < 0
+                                    ? "negative-text"
+                                    : "" %>">
+                                <%= formatPercentage(data.price_change_percentage_24h) %>
+                            </strong>
                         </div>
                     </div>
                 </div>
@@ -86,12 +124,12 @@
                 <div class="metrics">
                     <article class="metric primary-metric">
                         <p>Current Price:</p> 
-                        <strong>$<%= data.current_price.toLocaleString(); %></strong>
+                        <strong><%= formatUsd(data.current_price, true) %></strong>
                     </article>
 
                     <article class="metric">
                             <p>Market cap: </p>
-                            <strong>$<%= data.market_cap.toLocaleString(); %></strong>
+                            <strong><%= formatUsd(data.market_cap) %></strong>
                     </article>
 
                 </div>
@@ -99,41 +137,29 @@
                 <div class="secondary-metrics">
                     <article class="secondary-metric">
                         <p>FDV:</p>
-                        <strong><%= data.fully_diluted_valuation !== null
-                            ? "$" + data.fully_diluted_valuation.toLocaleString()
-                            : "Unavailable" %>
-                        </strong>
+                        <strong><%= formatUsd(data.fully_diluted_valuation) %></strong>
                     </article>
 
                     <article class="secondary-metric">
                         <p>Total Volume:</p>
-                        <strong><%= data.total_volume !== null
-                            ? "$" + data.total_volume.toLocaleString()
-                            : "Unavailable" %>
-                        </strong>
+                        <strong><%= formatUsd(data.total_volume) %></strong>
                     </article>
 
                     <article class="secondary-metric">
                         <p>ATH:</p>
-                        <strong><%= data.ath !== null
-                            ? "$" + data.ath.toLocaleString()
-                            : "Unavailable" %>
-                        </strong>
+                        <strong><%= formatUsd(data.ath, true) %></strong>
                     </article>
 
                     <article class="secondary-metric">
-                        <p>ATL</p>
-                        <strong><%= data.atl !== null
-                            ? "$" + data.atl.toLocaleString()
-                            : "Unavailable" %>
-                        </strong>
+                        <p>ATL:</p>
+                        <strong><%= formatUsd(data.atl, true) %></strong>
                     </article>
 
                 </div>
 
                 <p class="updated-at">
                         Last updated:
-                        <%= new Date(data.last_updated).toLocaleString() %>
+                        <%= formatDate(data.last_updated) %>
                 </p>  
             <% } %>
         </section>

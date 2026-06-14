@@ -3,48 +3,120 @@ import axios from "axios";
 
 const app = express();
 const port = 3000;
+
+//save response from coingecko
 let coinList = [];
 
 app.use(express.static("public"));
 
+
 async function loadCoinList() {
-    try{
-        const response = await axios.get(
-            "https://api.coingecko.com/api/v3/coins/list?include_platform=false"
-        );
-        coinList = response.data;
-        console.log(`Loaded ${coinList.length} coins`);   
-    }
-    catch(error){
-        console.log("Failed to load coin data list:", error.message);
-    }
-    
+    //get the response from coingecko and push it into coinList
+    const response = await axios.get(
+        "https://api.coingecko.com/api/v3/coins/list?include_platform=false"
+    );
+    coinList = response.data;
+    console.log(`Loaded ${coinList.length} coins`);
 }
-loadCoinList();
+
+//handle all axios error so it can be under stood by the user
+function getApiError(error) {
+    if (error.response?.status === 429) {
+        return {
+            status: 429,
+            message: "CoinGecko's rate limit has been reached. Please wait briefly and try again."
+        };
+    }
+
+    if (error.response) {
+        return {
+            status: 502,
+            message: "CoinGecko returned an error while loading the market data."
+        };
+    }
+
+    if (error.request) {
+        return {
+            status: 503,
+            message: "The market data service could not be reached. Check your connection and try again."
+        };
+    }
+
+    return {
+        status: 500,
+        message: "An unexpected error occurred while loading the market data."
+    };
+}
 
 
 app.get("/", async (req, res) => {
+    //handle the token wanted by the user, 
+    // if the token is not available, default back to bitcoin
+    //remove all the spaces before and after the input 
+    // and convert to lowercase to match coingecko id
+    const selectedCoin = String(req.query.coin || "bitcoin").trim().toLowerCase();
+
     try{
-        const selectedCoin = String(req.query.coin || "bitcoin").trim().toLowerCase();
         const response = await axios.get(
-            `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${selectedCoin}`
+            "https://api.coingecko.com/api/v3/coins/markets",
+            {
+                //dynamic axios parameters
+                params: {
+                    vs_currency: "usd",
+                    ids: selectedCoin,
+                    sparkline: false
+                }
+            }
         );
+        //push the token gotten from api response into the first object in the array 
+        // or return null if it is unavailable
         const coinData = response.data[0] || null;
-        const error = coinData ? null : "That coin is unavailable";   
+
+        //is the token is not found, return null and error message for user
+        if (!coinData) {
+            return res.status(404).render("index.ejs", {
+                data: null,
+                selectedCoin,
+                error: "No market data was found for that coin.",
+                coins: coinList
+            });
+        }
         
+        //if token is found, return the specific attributes of the token selected,
+        //default error to null
         res.render("index.ejs", {
-            data:  coinData, selectedCoin: selectedCoin, error: error, coins: coinList
+            data: coinData,
+            selectedCoin,
+            error: null,
+            coins: coinList
         });
     }
     catch(error){
+        //handle the error shown to the user is any of axios error come to pass
         console.error("Failed to fetch prices", error.message || error);
+        const apiError = getApiError(error);
 
-        res.render("index.ejs", {
-            error: error.message, selectedCoin: "bitcoin", data: null, coins: []
+        res.status(apiError.status).render("index.ejs", {
+            error: apiError.message,
+            selectedCoin,
+            data: null,
+            coins: coinList
         });
     }
 });
 
-app.listen(port, () => {
-    console.log(`Running server on ${port}`);
-});
+//wait for loadCoinlist and send error if the coinlist failed
+async function start() {
+    try {
+        await loadCoinList();
+    }
+    catch (error) {
+        console.error("Failed to load the coin list:", getApiError(error).message);
+    }
+
+    app.listen(port, () => {
+        console.log(`Running server on ${port}`);
+    });
+}
+
+start();
