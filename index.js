@@ -17,7 +17,7 @@ app.use(express.static("public"));
 
 async function loadCoinList() {
     //get the response from coingecko and push it into coinList
-    const response = await coingecko.get("/coins/markets", { 
+    const response = await coingecko.get("/coins/list", { 
         params: {include_platform: false}
     });
     coinList = response.data;
