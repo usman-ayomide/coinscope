@@ -4,6 +4,11 @@ import axios from "axios";
 const app = express();
 const port = process.env.PORT || 3000;
 
+const coingecko = axios.create({
+    baseURL: "https://api.coingecko.com/api/v3",
+    headers: { "x-cg-demo-api-key": process.env.COINGECKO_API_KEY }
+});
+
 //save response from coingecko
 let coinList = [];
 
@@ -12,9 +17,9 @@ app.use(express.static("public"));
 
 async function loadCoinList() {
     //get the response from coingecko and push it into coinList
-    const response = await axios.get(
-        "https://api.coingecko.com/api/v3/coins/list?include_platform=false"
-    );
+    const response = await coingecko.get("/coins/markets", { 
+        params: {include_platform: false}
+    });
     coinList = response.data;
     console.log(`Loaded ${coinList.length} coins`);
 }
@@ -57,17 +62,14 @@ app.get("/", async (req, res) => {
     const selectedCoin = String(req.query.coin || "bitcoin").trim().toLowerCase();
 
     try{
-        const response = await axios.get(
-            "https://api.coingecko.com/api/v3/coins/markets",
-            {
+        const response = await coingecko.get("/coins/markets", {
                 //dynamic axios parameters
                 params: {
                     vs_currency: "usd",
                     ids: selectedCoin,
                     sparkline: false
                 }
-            }
-        );
+        });
         //push the token gotten from api response into the first object in the array 
         // or return null if it is unavailable
         const coinData = response.data[0] || null;
